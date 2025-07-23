@@ -1,4 +1,4 @@
-name: Auto Generate Article with Images
+name: Auto Generate Article with Config
 
 on:
   schedule:
@@ -7,151 +7,81 @@ on:
     - cron: '0 18 * * *'
   workflow_dispatch:
     inputs:
-      force_generate:
-        description: 'Force generate article'
-        required: false
-        default: 'false'
-        type: boolean
       test_mode:
-        description: 'Test mode (no real API calls)'
+        description: 'Run in test mode (no real API calls)'
         required: false
         default: 'true'
         type: boolean
-      custom_topic:
-        description: 'Custom topic for article'
-        required: false
-        default: ''
-        type: string
-      skip_images:
-        description: 'Skip image download'
-        required: false
-        default: 'false'
-        type: boolean
-      debug_mode:
-        description: 'Enable debug logging'
-        required: false
-        default: 'false'
-        type: boolean
 
 jobs:
-  generate-article:
+  generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
 
     steps:
-    - name: Checkout repository
+    - name: 🧾 Checkout repo
       uses: actions/checkout@v4
 
-    - name: Set up Python
+    - name: 🐍 Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         cache: 'pip'
 
-    - name: Install Python dependencies
+    - name: 📦 Install dependencies
       run: |
         cd _Article
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Prepare environment and keywords
+    - name: ⚙️ Prepare .env and dummy keys if needed
       run: |
         cd _Article
 
+        # Build .env from inputs or defaults
         echo "TEST_MODE=${{ github.event.inputs.test_mode }}" > .env
-        echo "CUSTOM_TOPIC=${{ github.event.inputs.custom_topic }}" >> .env
-        echo "FORCE_GENERATE=${{ github.event.inputs.force_generate }}" >> .env
-        echo "SKIP_IMAGES=${{ github.event.inputs.skip_images }}" >> .env
-        echo "DEBUG_MODE=${{ github.event.inputs.debug_mode }}" >> .env
         echo "GITHUB_WORKFLOW=true" >> .env
 
-        # Create default keywords if missing
-        if [ ! -f keyword.txt ]; then
-          echo "modern living room design" > keyword.txt
-          echo "contemporary kitchen ideas" >> keyword.txt
-          echo "bedroom decoration tips" >> keyword.txt
-          echo "bathroom renovation guide" >> keyword.txt
-          echo "home office setup ideas" >> keyword.txt
-          echo "minimalist interior design" >> keyword.txt
-          echo "scandinavian home decor" >> keyword.txt
-          echo "industrial style furniture" >> keyword.txt
-          echo "small space solutions" >> keyword.txt
-          echo "outdoor patio design" >> keyword.txt
+        # Add dummy files if needed for test mode
+        if [ "${{ github.event.inputs.test_mode }}" = "true" ]; then
+          echo "TEST_KEY" > apikey.txt
+          echo "TEST_PIXEL_KEY" > pixel.txt
         fi
 
-        # Create dummy apikey.txt if missing and not using secrets
-        if [ ! -f apikey.txt ] && [ -z "${{ secrets.GEMINI_API_KEY }}" ]; then
-          echo "DUMMY_API_KEY" > apikey.txt
-        fi
+        # Make sure all config files exist
+        for file in apikey.txt keyword.txt CONFIG.txt pixel.txt; do
+          [ ! -f "$file" ] && touch "$file"
+        done
 
-    - name: Run article generation
+    - name: 🚀 Run UpdateArticle.py
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         TEST_MODE: ${{ github.event.inputs.test_mode }}
-        CUSTOM_TOPIC: ${{ github.event.inputs.custom_topic }}
-        FORCE_GENERATE: ${{ github.event.inputs.force_generate }}
-        SKIP_IMAGES: ${{ github.event.inputs.skip_images }}
-        DEBUG_MODE: ${{ github.event.inputs.debug_mode }}
       run: |
         cd _Article
-        echo "🔧 Running article generation..."
-
-        if [ "${{ github.event.inputs.test_mode }}" = "true" ]; then
-          echo "🧪 TEST MODE enabled (no real API calls)"
-        fi
+        echo "🔁 Running script with config files:"
+        ls -lh apikey.txt keyword.txt CONFIG.txt pixel.txt
 
         python UpdateArticle.py
 
-    - name: Validate output
+    - name: ✅ Validate post
       run: |
-        echo "🔍 Validating generated files..."
+        echo "📄 Checking for generated posts"
         if ls _posts/*.md 1>/dev/null 2>&1; then
-          echo "✅ Markdown post generated:"
+          echo "✅ Post created:"
           ls -lh _posts/*.md
         else
-          echo "❌ No post generated!"
+          echo "❌ No post generated"
           exit 1
         fi
 
-        if [ "${{ github.event.inputs.skip_images }}" != "true" ]; then
-          if find _Article -name "*.jpg" -o -name "*.png" | grep -q .; then
-            echo "✅ Image(s) downloaded."
-          else
-            echo "⚠️ No images downloaded."
-          fi
-        fi
-
-    - name: Commit and push changes
+    - name: 📤 Commit post
       run: |
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-        if git diff --quiet && git diff --cached --quiet; then
-          echo "📝 No changes to commit."
-          exit 0
-        fi
+        git add _posts || true
+        git diff --cached --quiet && echo "No changes to commit" && exit 0
 
-        git add .
-        COMMIT_MSG="Auto-generate: Article $(date +'%Y-%m-%d %H:%M UTC')"
-        [ "${{ github.event.inputs.test_mode }}" = "true" ] && COMMIT_MSG="$COMMIT_MSG [TEST MODE]"
-        [ -n "${{ github.event.inputs.custom_topic }}" ] && COMMIT_MSG="$COMMIT_MSG [Custom: ${{ github.event.inputs.custom_topic }}]"
-
-        git commit -m "$COMMIT_MSG"
+        git commit -m "Auto-post: $(date +'%Y-%m-%d %H:%M')"
         git push
-
-    - name: Summary
-      run: |
-        echo "## 📋 Article Generation Summary" >> $GITHUB_STEP_SUMMARY
-        echo "- Trigger: `${{ github.event_name }}`" >> $GITHUB_STEP_SUMMARY
-        echo "- Test Mode: `${{ github.event.inputs.test_mode }}`" >> $GITHUB_STEP_SUMMARY
-        echo "- Custom Topic: `${{ github.event.inputs.custom_topic }}`" >> $GITHUB_STEP_SUMMARY
-        echo "- Skip Images: `${{ github.event.inputs.skip_images }}`" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 📝 Posts Generated" >> $GITHUB_STEP_SUMMARY
-        if ls _posts/*.md 1>/dev/null 2>&1; then
-          for post in $(ls -t _posts/*.md | head -3); do
-            echo "- [$(basename "$post")]($(basename "$post"))" >> $GITHUB_STEP_SUMMARY
-          done
-        else
-          echo "- No posts found." >> $GITHUB_STEP_SUMMARY
-        fi
