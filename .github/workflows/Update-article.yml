@@ -17,7 +17,7 @@ on:
       test_mode:
         description: 'Test mode (generate without API calls for testing)'
         required: false
-        default: 'false'
+        default: 'true'
         type: boolean
       custom_topic:
         description: 'Custom topic for article generation'
