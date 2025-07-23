@@ -1,0 +1,84 @@
+<header class="site-header">
+  <div class="container">
+    <div class="header-inner">
+      <!-- Logo/Branding -->
+      <div class="site-branding">
+        <a href="{{ '/' | relative_url }}" class="site-logo" aria-label="Home">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-symbol">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+          <span class="site-title">{{ site.title | default: "Blog" }}</span>
+        </a>
+      </div>
+      
+      <!-- Desktop Navigation -->
+      <nav class="site-navigation desktop-nav">
+        {% include navigation.html %}
+      </nav>
+      
+      <!-- Header Actions -->
+      <div class="header-actions">
+        <!-- Search Toggle -->
+        <button id="search-toggle-btn" class="action-btn" aria-label="Toggle Search" title="Search">
+          <i data-feather="search"></i>
+        </button>
+        
+        <!-- Dark Mode Toggle -->
+        <div class="dark-mode-wrapper">
+          {% include dark-mode-toggle.html %}
+        </div>
+        
+        <!-- Mobile Menu Toggle -->
+        <button id="menu-toggle-btn" class="action-btn mobile-menu-toggle" aria-label="Toggle Menu" title="Menu">
+          <span class="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Search Box (appears below header) -->
+    <div id="searchBox" class="search-box">
+      {% include search-live.html %}
+    </div>
+  </div>
+  
+  <!-- Mobile Menu -->
+  <div id="mobileMenu" class="mobile-menu">
+    <div class="mobile-menu-inner">
+      <!-- Mobile Header -->
+      <div class="mobile-menu-header">
+        <div class="mobile-logo">
+          <a href="{{ '/' | relative_url }}" class="site-logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-symbol">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+            <span class="site-title">{{ site.title | default: "Blog" }}</span>
+          </a>
+        </div>
+        <button id="mobile-menu-close" class="mobile-close-btn" aria-label="Close Menu">
+          <i data-feather="x"></i>
+        </button>
+      </div>
+      
+      <!-- Mobile Search -->
+      <div class="mobile-search">
+        {% include search-live.html %}
+      </div>
+      
+      <!-- Mobile Navigation -->
+      <nav class="mobile-navigation">
+        {% include navigation.html %}
+      </nav>
+    </div>
+  </div>
+  
+  <!-- Mobile Menu Overlay -->
+  <div id="mobileMenuOverlay" class="mobile-menu-overlay"></div>
+</header>
